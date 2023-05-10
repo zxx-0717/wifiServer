@@ -84,10 +84,16 @@ class WifiConnectServer(Node):
         # 接受充电桩的数据帧
         self.udp_data = []
         # 创建对接充电桩服务
+        # self.start_docking_charging_pile_server = self.create_service(Empty, '/charger/start_docking',
+        #                                                         self.start_docking_charging_pile_callback)
+        # self.stop_docking_charging_pile_server = self.create_service(Empty, '/charger/stop_docking',
+        #                                                         self.stop_docking_charging_pile_callback)
+        
         self.start_docking_charging_pile_server = self.create_service(Empty, '/charger/start_docking',
                                                                 self.start_docking_charging_pile_visual_callback)
         self.stop_docking_charging_pile_server = self.create_service(Empty, '/charger/stop_docking',
-                                                                self.stop_docking_charging_pile_callback)
+                                                                self.stop_docking_charging_pile_visual_callback)
+
         # 创建一个UDP连接对象
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # 固定IP及端口号
@@ -220,7 +226,20 @@ class WifiConnectServer(Node):
     # 停止对接充电桩的指令
     def stop_docking_charging_pile_callback(self, request, response):
         self.charge_state.is_docking = False
+
         return response
+    
+    def stop_docking_charging_pile_visual_callback(self, request, response):
+        self.charge_state.is_docking = False
+        self.dock_goal_handle = self.dock_client_sendgoal_future.result()
+        cancel_goal_future = self.dock_goal_handle.cancel_goal_async()
+        cancel_response = cancel_goal_future.result()
+        self.get_logger().info("Docking canceled! ")
+        self.dock_goal_handle.cancel_goal()
+
+        return response
+
+
 
     # 通过bssid连接网络
     def connect_wifi(self, request, response, password=None):
