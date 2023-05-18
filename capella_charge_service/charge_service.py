@@ -258,7 +258,7 @@ class WifiConnectServer(Node):
         bssid = reversed(bssid)
         bssid =":".join(bssid).upper()
         print('try to connect wifi : ' ,bssid)
-        # bssid = 'CA:C9:A3:98:E1:65' # charge bssid  CA:C9:A3:98:E1:65
+        bssid = 'CA:C9:A3:98:E1:65' # charge bssid  CA:C9:A3:98:E1:65
         # bssid = 'C8:C2:FA:23:B2:34' # zxx 
         password = 'cqtj8888'
         net = None
@@ -272,10 +272,12 @@ class WifiConnectServer(Node):
 
         # 在扫描结果中循环找到要链接的WiFi
         for bss in scan_results:
-            if bss.get_bssid() == bssid:  # 'CA:C9:A3:98:DE:18'
+            if bss.get_bssid() == bssid:  # 'CA:C9:A3:98:E1:65'
                 network_cfg = {}
                 network_cfg['ssid'] = bss.get_ssid()
-                network_cfg['bssid'] = bss.get_bssid()
+                print(bss.get_ssid())
+                # network_cfg['bssid'] = bss.get_bssid()
+                network_cfg['bssid'] = bssid
                 if password is not None:
                     network_cfg['psk'] = password
                     network_cfg['key_mgmt'] = 'WPA-PSK'
@@ -295,7 +297,7 @@ class WifiConnectServer(Node):
         start_time = time.time()
         while True:
             if time.time() - start_time <= 10 and self.iface.get_state() != 'completed':
-                # print(self.iface.get_state())
+                print(self.iface.get_state())
                 continue
             elif time.time() - start_time > 10:
                 print('连接超时！')
