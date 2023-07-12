@@ -60,9 +60,9 @@ class WifiConnectServer(Node):
         self.driver = WpaSupplicantDriver(self.reactor)
         self.supplicant = self.driver.connect()
         try:
-            self.iface = self.supplicant.get_interface('wlp3s0')
+            self.iface = self.supplicant.get_interface('wlp2s0')
         except:
-            self.iface = self.supplicant.create_interface('wlp3s0')
+            self.iface = self.supplicant.create_interface('wlp2s0')
         # WIFI链接状态
         self.wifi_c = False
         # 记录bssid
