@@ -9,7 +9,8 @@ from twisted.internet.selectreactor import SelectReactor
 from capella_ros_msg.srv import ChargePileWifi
 from capella_ros_service_interfaces.msg import ChargeState
 from std_srvs.srv import Empty
-from irobot_create_msgs.action import Dock
+# from irobot_create_msgs.action import Dock // for dock_visual pkg
+from capella_ros_dock_msgs.action import Dock
 from rclpy.action import ActionClient
 from rclpy.qos import DurabilityPolicy
 from rclpy.qos import ReliabilityPolicy
@@ -49,7 +50,6 @@ from rclpy.qos import QoSProfile
 # /charger/start_docking：开始对接
 # /charger/stop_docking：停止对接
 
-
 class WifiConnectServer(Node):
     def __init__(self, name):
         super().__init__(name)
@@ -73,10 +73,11 @@ class WifiConnectServer(Node):
         # 定时检查WIFI是否断开
         self.check_wifi = self.create_timer(5, self.check_wifi_callback)
         # 创建充电状态发布器
-        charger_state_qos = QoSProfile(depth=1)
-        charger_state_qos.reliability = ReliabilityPolicy.RELIABLE
-        charger_state_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
-        self.charge_state_publisher = self.create_publisher(ChargeState, '/charger/state', charger_state_qos)
+        # charger_state_qos = QoSProfile(depth=1)
+        # charger_state_qos.reliability = ReliabilityPolicy.RELIABLE
+        # charger_state_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        # self.charge_state_publisher = self.create_publisher(ChargeState, '/charger/state', charger_state_qos)
+        self.charge_state_publisher = self.create_publisher(ChargeState, '/charger/state', 50)
         timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.charge_state_callback)
         # 初始化充电状态信息
@@ -383,8 +384,8 @@ class WifiConnectServer(Node):
                         self.charge_state.has_contact = False
                     elif data_list[12:-2][-1] == '01':
                         self.charge_state.has_contact = True
-                        now_time = self.get_clock().now()
-                        self.charge_state.stamp = now_time.to_msg()
+                        # now_time = self.get_clock().now()
+                        # self.charge_state.stamp = now_time.to_msg()
                     else:
                         print('未知数据。')
                     # print('charging: ', self.charge_state.is_charging)
