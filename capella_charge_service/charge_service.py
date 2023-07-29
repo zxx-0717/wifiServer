@@ -407,7 +407,7 @@ class WifiServer(Node):
     # 定时检查WIFI是否断开的回调函数data
     def check_wifi_callback(self, ):
         if self.iface.get_current_bss() is not None:
-            if self.iface.get_current_bss().get_bssid() == self.bssid:
+            if self.iface.get_current_bss().get_bssid() == "CA:C9:A3:98:E1:65": # need to fix with a topic for request bssid
                 pass
             else:
                 self.get_logger().info("current_bss: {}".format(self.iface.get_current_bss()))
