@@ -278,7 +278,7 @@ class WifiServer(Node):
 
         for bss in scan_results:
             self.get_logger().debug(f'wifi: {bss.get_ssid()}')
-            self.get_logger().debug('bssid: {bss.get_bssid()}')
+            self.get_logger().debug(f'bssid: {bss.get_bssid()}')
             self.get_logger().debug('-----------------------------')
 
         # 在扫描结果中循环找到要链接的WiFi
