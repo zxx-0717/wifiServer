@@ -206,6 +206,14 @@ class WifiServer(Node):
     def start_docking_charging_pile_visual_callback(self, request, response):
         self.get_logger().info("开始对接充电桩. (视觉定位)")
         self.charge_state.is_docking = True
+
+        # connect wifi
+        self.wifi_connect_cli = self.create_client(ChargePileWifi, '/wifi_bssid')
+        wifi_msg = ChargePileWifi.Request()
+        wifi_msg.ssid = 1
+        self.wifi_connect_future = self.wifi_connect_cli.call_async(wifi_msg)
+
+
         self.dock_client = ActionClient(self, Dock, "dock")
         dock_msg = Dock.Goal()
         while not self.dock_client.wait_for_server(2):
