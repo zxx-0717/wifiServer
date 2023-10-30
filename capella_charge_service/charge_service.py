@@ -61,10 +61,12 @@ class WifiServer(Node):
         time.sleep(1)
         self.driver = WpaSupplicantDriver(self.reactor)
         self.supplicant = self.driver.connect()
+        self.declare_parameter('wifi_interface', 'wlp2s0')
+        self.wifi_interface = self.get_parameter('wifi_interface').get_parameter_value().string_value
         try:
-            self.iface = self.supplicant.get_interface('wlp2s0')
+            self.iface = self.supplicant.get_interface(self.wifi_interface)
         except:
-            self.iface = self.supplicant.create_interface('wlp2s0')
+            self.iface = self.supplicant.create_interface(self.wifi_interface)
         # WIFI链接状态
         self.wifi_c = False
         # 记录bssid
