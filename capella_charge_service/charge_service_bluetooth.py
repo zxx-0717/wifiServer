@@ -397,7 +397,7 @@ class WifiServer(Node):
             self.charge_state.pid = ''
             self.charge_state.has_contact = False
             self.charge_state.is_charging = False
-            self.charge_state.is_docking = False
+            # self.charge_state.is_docking = False
 
     # CRC-8/MAXIM　x8+x5+x4+1  循环冗余校验 最后在取了反的
     # 计算校验码
