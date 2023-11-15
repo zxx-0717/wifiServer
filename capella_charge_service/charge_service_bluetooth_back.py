@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import time
-import os
+import socket
 import threading
 import crcmod.predefined
 from twisted.internet.selectreactor import SelectReactor
@@ -58,6 +58,7 @@ class WifiServer(Node):
     def __init__(self, name):
         super().__init__(name)
         self.get_logger().info("Bluetooth charge Server starting")
+        self.bluetooth_connected_result = False
         self.bluetooth_connected = False
         # 蓝牙数据notify的uuid
         self.uuid_notify = None
@@ -65,8 +66,6 @@ class WifiServer(Node):
         self.uuid_write = None
         # 初始化发送的数据
         self.send_data = None
-        # 是否断开蓝牙的属性
-        self.disconnect_bluetooth = False
         # 通过bssid链接充电桩WIFI服务
         self.bluetooth_concact_server = self.create_service(ChargePileWifi, 'bluetooth_bssid', self.connect_bluetooth)
         # 定时检查WIFI是否断开
@@ -246,7 +245,6 @@ class WifiServer(Node):
         # self.dock_goal_handle.cancel_goal()
         cancel_response = cancel_goal_future.result()
         self.get_logger().info("Docking canceled! ")
-        self.disconnect_bluetooth = True
         self.charge_state.pid = ''
         self.charge_state.has_contact = False
         self.charge_state.is_charging = False
@@ -260,7 +258,6 @@ class WifiServer(Node):
         cancel_goal_future = self.dock_goal_handle.cancel_goal_async()
         # self.dock_goal_handle.cancel_goal()
         self.get_logger().info("Docking canceled! ")
-        self.disconnect_bluetooth = True
         self.charge_state.pid = ''
         self.charge_state.has_contact = False
         self.charge_state.is_charging = False
@@ -270,97 +267,74 @@ class WifiServer(Node):
 
     # 连接充电桩蓝牙
     def connect_bluetooth(self, request, response):
-        self.get_logger().info("正在重启蓝牙...")
-        os.system('sudo rfkill block bluetooth') # bluetoothctl power off
-        time.sleep(1)
-        os.system('sudo rfkill unblock bluetooth')# bluetoothctl power on
-        time.sleep(1)
-        self.bluetooth_connected = None
         bssid = request.ssid
-        # bssid = '55:3E:1E:AA:EB:65' # 手机蓝牙
-        # bssid = "94:C9:60:43:C0:6D" # 蓝牙充电桩-1
-        bssid = "94:C9:60:43:BE:67" # 蓝牙充电桩-2
+        # bssid = 'CA:C9:A3:98:DE:18'
+        bssid = "94:C9:60:43:C3:DF"
         # 连接网络
-        self.thread_bule = threading.Thread(target=self.bluetooth_thread,kwargs={'mac_address':bssid},daemon=True)
+        self.thread_bule = threading.Thread(target=self.bluetooth_thread,kwargs={'mac_address':bssid})
         self.thread_bule.start()
         self.get_logger().info("蓝牙线程已开启。")
-        t1 = time.time()
-        while True:
-            if time.time() - t1 > 30:
-                self.get_logger().info("蓝牙连接超时。")
-                self.bluetooth_connected = False
-                break
-            elif self.charge_state.pid == "" and self.bluetooth_connected == None:
-                time.sleep(1)
-                self.get_logger().info("蓝牙连接中...")
-                continue
-            else:
-                break
-        print('self.bluetooth_connected',self.bluetooth_connected)
+        while self.bluetooth_connected_result == False:
+            time.sleep(1)
+            self.get_logger().info("蓝牙连接中...")
         if self.bluetooth_connected == True:
             self.get_logger().info('蓝牙连接成功.')
-            response.success = True
         else:
             self.get_logger().info('蓝牙连失败.')
-            response.success = False
+        response.success = self.bluetooth_connected
         return response
     
     async def create_bleakclient(self,address):
         # 搜索附近的蓝牙
-        # self.get_logger().info("正在搜索附近的蓝牙......\n")
-        # device_dict = {}
-        # devices = await BleakScanner().discover()
-        # self.get_logger().info(f'搜到{len(devices)}个蓝牙信号。')
-        # self.get_logger().info('MAC地址            name')
-        # for d in devices:
-        #     print(d.address,d.name,d.rssi)
-        #     device_dict[f'{d.address}'] = f'{d.name}'
-        # # 判断要连接的蓝牙是否在搜索到的蓝牙里面
-        # if address in device_dict.keys():
-        try:
-            # 开始连接蓝牙
-            print("开始创建bleakclient")
-            async with BleakClient(address) as self.bleak_client:
-                self.disconnect_bluetooth = False
-                if self.bleak_client.is_connected():
-                    # 获取蓝牙的服务
-                    services = self.bleak_client.services
-                    for service in services:
-                        print('服务的uuid：', service.uuid)
-                        for character in service.characteristics:
-                            # print('特征值uuid：', character.uuid)
-                            # print('特征值属性：', character.properties)
-                            # 获取发送数据的蓝牙服务uuid
-                            if character.properties == ['write-without-response', 'write']:
-                                self.uuid_write = character.uuid
-                            # 获取接收数据的蓝牙服务uuid
-                            elif character.properties == ['read', 'notify']:
-                                self.uuid_notify = character.uuid
-                            else:
-                                continue
-                        print('*************************************')
-                else:
-                    self.bluetooth_connected = False
-                self.charge_state.pid = address
-                self.bluetooth_connected = True
-                while self.bleak_client.is_connected:
-                    await self.bleak_client.start_notify(self.uuid_notify, self.notify_data)
-                    if self.send_data is not None:
-                        await self.bleak_client.write_gatt_char(self.uuid_write,self.send_data)
-                        self.send_data = None
-                    if self.disconnect_bluetooth:
-                        await self.bleak_client.disconnect()
-                        self.get_logger().info(f"已断开蓝牙。")
-                        break
+        self.get_logger().info("正在搜索附近的蓝牙......\n")
+        device_dict = {}
+        devices = await BleakScanner().discover()
+        self.get_logger().info('MAC地址            name')
+        for d in devices:
+            print(d.address,d.name,d.rssi)
+            device_dict[f'{d.address}'] = f'{d.name}'
+        # 判断要连接的蓝牙是否在搜索到的蓝牙里面
+        if address in device_dict.keys():
+            try:
+                # 开始连接蓝牙
+                async with BleakClient(address) as bleak_client:
+                    self.bluetooth_connected_result = True
+                    if bleak_client.is_connected():
+                        self.bluetooth_connected = True
+                        # 获取蓝牙的服务
+                        services = bleak_client.services
+                        for service in services:
+                            print('服务的uuid：', service.uuid)
+                            for character in service.characteristics:
+                                # print('特征值uuid：', character.uuid)
+                                # print('特征值属性：', character.properties)
+                                # 获取发送数据的蓝牙服务uuid
+                                if character.properties == ['write-without-response', 'write']:
+                                    self.uuid_write = character.uuid
+                                # 获取接收数据的蓝牙服务uuid
+                                elif character.properties == ['read', 'notify']:
+                                    self.uuid_notify = character.uuid
+                                else:
+                                    continue
+                            print('*************************************')
+                    else:
+                        self.bluetooth_connected = False
+                    while bleak_client.is_connected:
+                        self.charge_state.pid = address
+                        await bleak_client.start_notify(self.uuid_notify, self.notify_data)
+
+                        if self.send_data is not None:
+                            await bleak_client.write_gatt_char(self.uuid_write,self.send_data)
+                            self.send_data = None
+                    self.charge_state.pid = ""
+            except Exception as e:
                 self.charge_state.pid = ""
-        except Exception as e:
-            self.bluetooth_connected = False
+                self.get_logger().info(f"连接蓝牙失败：{e}")
+        else:
+            self.get_logger().info(f"当前连接的wifi(bssid:{address})未找到。")
+            self.bluetooth_connected_result = True
+            self.bluetooth_connected= False
             self.charge_state.pid = ""
-            self.get_logger().info(e)
-        # else:
-        #     self.get_logger().info(f"当前连接的wifi(bssid:{address})未找到。")
-        #     self.bluetooth_connected= False
-        #     self.charge_state.pid = ""
         
     def bluetooth_thread(self,mac_address):
         asyncio.run(self.create_bleakclient(mac_address))
@@ -391,7 +365,6 @@ class WifiServer(Node):
         crc8_ = self.crc8(data_list[:-2])
         if crc8_ == data_list[-2].upper():
             # self.get_logger().debug('数据校验通过！')
-            # self.get_logger().info('解析后的数据为：{}'.format(data_list))
             self.udp_data = data_list
             # 判断机器人与充电桩的接触状态与充电状态
             # 通过命令码是否是充电桩工作状态的信息帧
@@ -401,7 +374,7 @@ class WifiServer(Node):
                 elif data_list[12:-2][0] == '01':
                     self.charge_state.is_charging = True
                 else:
-                    self.get_logger().info('is_charging 数据段数据错误。')
+                    self.get_logger().debug('is_charging 数据段数据错误。')
                 if data_list[12:-2][5] == '00':
                     self.charge_state.has_contact = False
                 elif data_list[12:-2][5] == '01':
@@ -410,7 +383,7 @@ class WifiServer(Node):
                     # now_time = self.get_clock().now()
                     # self.charge_state.stamp = now_time.to_msg()
                 else:
-                    self.get_logger().info('has_contact 数据段数据错误。')
+                    self.get_logger().debug('has_contact 数据段数据错误。')
         # else:
             # self.get_logger().debug(f'self crc: {crc8_}')
             # self.get_logger().debug(f'recv crc: {data_list[-2].upper()}')
@@ -425,15 +398,6 @@ class WifiServer(Node):
             self.charge_state.has_contact = False
             self.charge_state.is_charging = False
             # self.charge_state.is_docking = False
-        try:
-            if not self.bleak_client.is_connected:
-                self.charge_state.pid = ''
-                self.charge_state.has_contact = False
-                self.charge_state.is_charging = False
-        except:
-            self.charge_state.pid = ''
-            self.charge_state.has_contact = False
-            self.charge_state.is_charging = False
 
     # CRC-8/MAXIM　x8+x5+x4+1  循环冗余校验 最后在取了反的
     # 计算校验码
