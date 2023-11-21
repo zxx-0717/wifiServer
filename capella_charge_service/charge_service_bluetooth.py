@@ -8,12 +8,11 @@ from twisted.internet.selectreactor import SelectReactor
 from capella_ros_msg.srv import ChargePileWifi
 from capella_ros_service_interfaces.msg import ChargeState
 from std_srvs.srv import Empty
+from std_msgs.msg import String
 # from irobot_create_msgs.action import Dock // for dock_visual pkg
 from capella_ros_dock_msgs.action import Dock
 from rclpy.action import ActionClient
-from rclpy.qos import DurabilityPolicy
-from rclpy.qos import ReliabilityPolicy
-from rclpy.qos import QoSProfile
+from rclpy.qos import DurabilityPolicy,ReliabilityPolicy,QoSProfile,HistoryPolicy,LivelinessPolicy
 # 蓝牙模块相关的库
 import asyncio
 from bleak import BleakScanner,BleakClient
@@ -59,6 +58,7 @@ class WifiServer(Node):
         super().__init__(name)
         self.get_logger().info("Bluetooth charge Server starting")
         self.bluetooth_connected = False
+        self.charger_macid = ''
         # 蓝牙数据notify的uuid
         self.uuid_notify = None
         # 蓝牙数据write的uuid
@@ -68,7 +68,11 @@ class WifiServer(Node):
         # 是否断开蓝牙的属性
         self.disconnect_bluetooth = False
         # 通过bssid链接充电桩WIFI服务
-        self.bluetooth_concact_server = self.create_service(ChargePileWifi, 'bluetooth_bssid', self.connect_bluetooth)
+        charger_state_qos = QoSProfile(depth=1)
+        charger_state_qos.reliability = ReliabilityPolicy.RELIABLE
+        charger_state_qos.history = HistoryPolicy.KEEP_LAST
+        charger_state_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.charger_id_sub = self.create_subscription(String, '/charger/id', self.charger_id_sub_callback,charger_state_qos)
         # 定时检查WIFI是否断开
         self.check_bluetooth = self.create_timer(5, self.check_bluetooth_callback)
         # 创建充电状态发布器
@@ -105,6 +109,10 @@ class WifiServer(Node):
     # 定时发布充电状态
     def charge_state_callback(self, ):
         self.charge_state_publisher.publish(self.charge_state)
+
+    # 
+    def charger_id_sub_callback(self,msg):
+        self.charger_macid = msg.data
 
     # 开始充电服务回调函数,向充电桩发送开始充电数据帧
     def start_charge_callback(self, request, response):
@@ -202,10 +210,7 @@ class WifiServer(Node):
         self.charge_state.is_docking = True
 
         # connect wifi
-        wifi_msg = ChargePileWifi.Request()
-        wifi_msg.ssid = 1
-        re = ChargePileWifi.Response()
-        self.connect_bluetooth(wifi_msg,re)
+        self.connect_bluetooth()
 
         if self.charge_state.pid != '':        
             self.get_logger().info('start docking action')
@@ -269,19 +274,20 @@ class WifiServer(Node):
         return response
 
     # 连接充电桩蓝牙
-    def connect_bluetooth(self, request, response):
+    def connect_bluetooth(self,):
         self.get_logger().info("正在重启蓝牙...")
         os.system('sudo rfkill block bluetooth') # bluetoothctl power off
         time.sleep(1)
         os.system('sudo rfkill unblock bluetooth')# bluetoothctl power on
         time.sleep(1)
         self.bluetooth_connected = None
-        bssid = request.ssid
         # bssid = '55:3E:1E:AA:EB:65' # 手机蓝牙
-        # bssid = "94:C9:60:43:C0:6D" # 蓝牙充电桩-1
-        bssid = "94:C9:60:43:BE:67" # 蓝牙充电桩-2
+        if self.charger_macid == '':
+            self.get_logger().info("id = '' ...")
+            self.charger_macid = "94:C9:60:43:C0:6D" # 蓝牙充电桩-1 
+            # bssid = "94:C9:60:43:BE:67" # 蓝牙充电桩-2
         # 连接网络
-        self.thread_bule = threading.Thread(target=self.bluetooth_thread,kwargs={'mac_address':bssid},daemon=True)
+        self.thread_bule = threading.Thread(target=self.bluetooth_thread,kwargs={'mac_address':self.charger_macid},daemon=True)
         self.thread_bule.start()
         self.get_logger().info("蓝牙线程已开启。")
         t1 = time.time()
@@ -299,21 +305,21 @@ class WifiServer(Node):
         print('self.bluetooth_connected',self.bluetooth_connected)
         if self.bluetooth_connected == True:
             self.get_logger().info('蓝牙连接成功.')
-            response.success = True
         else:
             self.get_logger().info('蓝牙连失败.')
-            response.success = False
-        return response
-    
+
     async def create_bleakclient(self,address):
         # 搜索附近的蓝牙
         # self.get_logger().info("正在搜索附近的蓝牙......\n")
         # device_dict = {}
-        # devices = await BleakScanner().discover()
+        # devices = await BleakScanner().discover(return_adv=True)
         # self.get_logger().info(f'搜到{len(devices)}个蓝牙信号。')
         # self.get_logger().info('MAC地址            name')
+        # # print(devices)
+        # for key in devices:
+        #     self.get_logger().info(f'{key} => {devices[key][1].local_name}')
         # for d in devices:
-        #     print(d.address,d.name,d.rssi)
+        #     self.get_logger().info(f'{d.address} {d.}')
         #     device_dict[f'{d.address}'] = f'{d.name}'
         # # 判断要连接的蓝牙是否在搜索到的蓝牙里面
         # if address in device_dict.keys():
@@ -356,7 +362,7 @@ class WifiServer(Node):
         except Exception as e:
             self.bluetooth_connected = False
             self.charge_state.pid = ""
-            self.get_logger().info(e)
+            # self.get_logger().info(e)
         # else:
         #     self.get_logger().info(f"当前连接的wifi(bssid:{address})未找到。")
         #     self.bluetooth_connected= False

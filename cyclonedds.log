@@ -1,0 +1,138 @@
+1700208815.409617 [0] camera_poi: config: Domain/General/MulticastRecvNetworkInterfaceAddresses/#text: preferred {}
+1700208815.409749 [0] camera_poi: config: Domain/General/Interfaces/NetworkInterface[@autodetermine]: false {}
+1700208815.409839 [0] camera_poi: config: Domain/General/Interfaces/NetworkInterface[@name]: docker0 {1}
+1700208815.409915 [0] camera_poi: config: Domain/General/Interfaces/NetworkInterface[@address]:  {}
+1700208815.409994 [0] camera_poi: config: Domain/General/Interfaces/NetworkInterface[@priority]: default {1}
+1700208815.410073 [0] camera_poi: config: Domain/General/Interfaces/NetworkInterface[@prefer_multicast]: false {}
+1700208815.410152 [0] camera_poi: config: Domain/General/Interfaces/NetworkInterface[@presence_required]: true {}
+1700208815.410172 [0] camera_poi: config: Domain/General/Interfaces/NetworkInterface[@multicast]: default {1}
+1700208815.410180 [0] camera_poi: config: Domain/General/ExternalNetworkAddress/#text: auto {}
+1700208815.410186 [0] camera_poi: config: Domain/General/ExternalNetworkMask/#text: 0.0.0.0 {}
+1700208815.410193 [0] camera_poi: config: Domain/General/AllowMulticast/#text: default {1}
+1700208815.410202 [0] camera_poi: config: Domain/General/MulticastTimeToLive/#text: 32 {}
+1700208815.410212 [0] camera_poi: config: Domain/General/DontRoute/#text: false {}
+1700208815.410223 [0] camera_poi: config: Domain/General/Transport/#text: udp {}
+1700208815.410235 [0] camera_poi: config: Domain/General/EnableMulticastLoopback/#text: true {}
+1700208815.410246 [0] camera_poi: config: Domain/General/MaxMessageSize/#text: 65500 B {1}
+1700208815.410255 [0] camera_poi: config: Domain/General/MaxRexmitMessageSize/#text: 1456 B {}
+1700208815.410264 [0] camera_poi: config: Domain/General/FragmentSize/#text: 1344 B {}
+1700208815.410277 [0] camera_poi: config: Domain/General/RedundantNetworking/#text: false {}
+1700208815.410284 [0] camera_poi: config: Domain/General/EntityAutoNaming/#text: empty {}
+1700208815.410293 [0] camera_poi: config: Domain/General/EntityAutoNaming[@seed]: 595698158 3859188698 2410838364 3662191012 4154592857 2437798304 1308019582 112170029 {}
+1700208815.410310 [0] camera_poi: config: Domain/Sizing/ReceiveBufferSize/#text: 1 MiB {}
+1700208815.410320 [0] camera_poi: config: Domain/Sizing/ReceiveBufferChunkSize/#text: 128 KiB {}
+1700208815.410330 [0] camera_poi: config: Domain/Compatibility/StandardsConformance/#text: lax {}
+1700208815.410341 [0] camera_poi: config: Domain/Compatibility/ExplicitlyPublishQosSetToDefault/#text: false {}
+1700208815.410350 [0] camera_poi: config: Domain/Compatibility/ManySocketsMode/#text: single {}
+1700208815.410360 [0] camera_poi: config: Domain/Compatibility/AssumeRtiHasPmdEndpoints/#text: false {}
+1700208815.410370 [0] camera_poi: config: Domain/Discovery/Tag/#text:  {}
+1700208815.410378 [0] camera_poi: config: Domain/Discovery/ExternalDomainId/#text: 0 {}
+1700208815.410387 [0] camera_poi: config: Domain/Discovery/DSGracePeriod/#text: 30 s {}
+1700208815.410399 [0] camera_poi: config: Domain/Discovery/ParticipantIndex/#text: none {}
+1700208815.410409 [0] camera_poi: config: Domain/Discovery/MaxAutoParticipantIndex/#text: 9 {}
+1700208815.410419 [0] camera_poi: config: Domain/Discovery/SPDPMulticastAddress/#text: 239.255.0.1 {}
+1700208815.410427 [0] camera_poi: config: Domain/Discovery/SPDPInterval/#text: 30 s {}
+1700208815.410436 [0] camera_poi: config: Domain/Discovery/DefaultMulticastAddress/#text: auto {}
+1700208815.410447 [0] camera_poi: config: Domain/Discovery/Ports/Base/#text: 7400 {}
+1700208815.410456 [0] camera_poi: config: Domain/Discovery/Ports/DomainGain/#text: 250 {}
+1700208815.410465 [0] camera_poi: config: Domain/Discovery/Ports/ParticipantGain/#text: 2 {}
+1700208815.410473 [0] camera_poi: config: Domain/Discovery/Ports/MulticastMetaOffset/#text: 0 {}
+1700208815.410483 [0] camera_poi: config: Domain/Discovery/Ports/UnicastMetaOffset/#text: 10 {}
+1700208815.410492 [0] camera_poi: config: Domain/Discovery/Ports/MulticastDataOffset/#text: 1 {}
+1700208815.410503 [0] camera_poi: config: Domain/Discovery/Ports/UnicastDataOffset/#text: 11 {}
+1700208815.410530 [0] camera_poi: config: Domain/Discovery/EnableTopicDiscoveryEndpoints/#text: false {}
+1700208815.410541 [0] camera_poi: config: Domain/Discovery/LeaseDuration/#text: 10 s {}
+1700208815.410570 [0] camera_poi: config: Domain/Tracing/Category/#text: fatal,error,warning,info,config {1}
+1700208815.410582 [0] camera_poi: config: Domain/Tracing/OutputFile/#text: cyclonedds.log {}
+1700208815.410592 [0] camera_poi: config: Domain/Tracing/AppendToFile/#text: false {}
+1700208815.410600 [0] camera_poi: config: Domain/Tracing/PacketCaptureFile/#text:  {}
+1700208815.410611 [0] camera_poi: config: Domain/Internal/DeliveryQueueMaxSamples/#text: 256 {}
+1700208815.410620 [0] camera_poi: config: Domain/Internal/PrimaryReorderMaxSamples/#text: 128 {}
+1700208815.410629 [0] camera_poi: config: Domain/Internal/SecondaryReorderMaxSamples/#text: 128 {}
+1700208815.410639 [0] camera_poi: config: Domain/Internal/DefragUnreliableMaxSamples/#text: 4 {}
+1700208815.410645 [0] camera_poi: config: Domain/Internal/DefragReliableMaxSamples/#text: 16 {}
+1700208815.410654 [0] camera_poi: config: Domain/Internal/BuiltinEndpointSet/#text: writers {}
+1700208815.410662 [0] camera_poi: config: Domain/Internal/MeasureHbToAckLatency/#text: false {}
+1700208815.410671 [0] camera_poi: config: Domain/Internal/UnicastResponseToSPDPMessages/#text: true {}
+1700208815.410679 [0] camera_poi: config: Domain/Internal/SynchronousDeliveryPriorityThreshold/#text: 0 {}
+1700208815.410686 [0] camera_poi: config: Domain/Internal/SynchronousDeliveryLatencyBound/#text: inf {}
+1700208815.410693 [0] camera_poi: config: Domain/Internal/MaxParticipants/#text: 0 {}
+1700208815.410699 [0] camera_poi: config: Domain/Internal/AccelerateRexmitBlockSize/#text: 0 {}
+1700208815.410705 [0] camera_poi: config: Domain/Internal/RetransmitMerging/#text: never {}
+1700208815.410713 [0] camera_poi: config: Domain/Internal/RetransmitMergingPeriod/#text: 5 ms {}
+1700208815.410719 [0] camera_poi: config: Domain/Internal/HeartbeatInterval/#text: 100 ms {}
+1700208815.410727 [0] camera_poi: config: Domain/Internal/HeartbeatInterval[@min]: 5 ms {}
+1700208815.410734 [0] camera_poi: config: Domain/Internal/HeartbeatInterval[@minsched]: 20 ms {}
+1700208815.410741 [0] camera_poi: config: Domain/Internal/HeartbeatInterval[@max]: 8 s {}
+1700208815.410747 [0] camera_poi: config: Domain/Internal/MaxQueuedRexmitBytes/#text: 512 KiB {}
+1700208815.410754 [0] camera_poi: config: Domain/Internal/MaxQueuedRexmitMessages/#text: 200 {}
+1700208815.410759 [0] camera_poi: config: Domain/Internal/WriterLingerDuration/#text: 1 s {}
+1700208815.410766 [0] camera_poi: config: Domain/Internal/SocketReceiveBufferSize[@min]: default {}
+1700208815.410773 [0] camera_poi: config: Domain/Internal/SocketReceiveBufferSize[@max]: default {}
+1700208815.410780 [0] camera_poi: config: Domain/Internal/SocketSendBufferSize[@min]: 64 KiB {}
+1700208815.410787 [0] camera_poi: config: Domain/Internal/SocketSendBufferSize[@max]: default {}
+1700208815.410794 [0] camera_poi: config: Domain/Internal/NackDelay/#text: 100 ms {}
+1700208815.410801 [0] camera_poi: config: Domain/Internal/AckDelay/#text: 10 ms {}
+1700208815.410808 [0] camera_poi: config: Domain/Internal/AutoReschedNackDelay/#text: 3 s {}
+1700208815.410814 [0] camera_poi: config: Domain/Internal/PreEmptiveAckDelay/#text: 10 ms {}
+1700208815.410821 [0] camera_poi: config: Domain/Internal/ScheduleTimeRounding/#text: 0 s {}
+1700208815.410827 [0] camera_poi: config: Domain/Internal/DDSI2DirectMaxThreads/#text: 1 {}
+1700208815.410834 [0] camera_poi: config: Domain/Internal/SquashParticipants/#text: false {}
+1700208815.410841 [0] camera_poi: config: Domain/Internal/SPDPResponseMaxDelay/#text: 0 s {}
+1700208815.410848 [0] camera_poi: config: Domain/Internal/LateAckMode/#text: false {}
+1700208815.410855 [0] camera_poi: config: Domain/Internal/RetryOnRejectBestEffort/#text: false {}
+1700208815.410861 [0] camera_poi: config: Domain/Internal/GenerateKeyhash/#text: false {}
+1700208815.410868 [0] camera_poi: config: Domain/Internal/MaxSampleSize/#text: 2147483647 B {}
+1700208815.410875 [0] camera_poi: config: Domain/Internal/WriteBatch/#text: false {}
+1700208815.410887 [0] camera_poi: config: Domain/Internal/LivelinessMonitoring/#text: false {}
+1700208815.410893 [0] camera_poi: config: Domain/Internal/LivelinessMonitoring[@StackTraces]: true {}
+1700208815.410899 [0] camera_poi: config: Domain/Internal/LivelinessMonitoring[@Interval]: 1 s {}
+1700208815.410907 [0] camera_poi: config: Domain/Internal/MonitorPort/#text: -1 {}
+1700208815.410914 [0] camera_poi: config: Domain/Internal/PrioritizeRetransmit/#text: true {}
+1700208815.410920 [0] camera_poi: config: Domain/Internal/UseMulticastIfMreqn/#text: 0 {}
+1700208815.410927 [0] camera_poi: config: Domain/Internal/RediscoveryBlacklistDuration/#text: 0 s {}
+1700208815.410934 [0] camera_poi: config: Domain/Internal/RediscoveryBlacklistDuration[@enforce]: false {}
+1700208815.410941 [0] camera_poi: config: Domain/Internal/MultipleReceiveThreads/#text: default {}
+1700208815.410948 [0] camera_poi: config: Domain/Internal/MultipleReceiveThreads[@maxretries]: 4294967295 {}
+1700208815.410956 [0] camera_poi: config: Domain/Internal/Test/XmitLossiness/#text: 0 {}
+1700208815.410964 [0] camera_poi: config: Domain/Internal/Watermarks/WhcLow/#text: 1 KiB {}
+1700208815.410971 [0] camera_poi: config: Domain/Internal/Watermarks/WhcHigh/#text: 500 KiB {1}
+1700208815.410979 [0] camera_poi: config: Domain/Internal/Watermarks/WhcHighInit/#text: 30 KiB {}
+1700208815.410986 [0] camera_poi: config: Domain/Internal/Watermarks/WhcAdaptive/#text: true {}
+1700208815.410994 [0] camera_poi: config: Domain/Internal/BurstSize/MaxRexmit/#text: 1 MiB {}
+1700208815.411001 [0] camera_poi: config: Domain/Internal/BurstSize/MaxInitTransmit/#text: 4294967295 {}
+1700208815.411009 [0] camera_poi: config: Domain/Internal/EnableExpensiveChecks/#text:  {}
+1700208815.411016 [0] camera_poi: config: Domain/TCP/NoDelay/#text: true {}
+1700208815.411023 [0] camera_poi: config: Domain/TCP/Port/#text: -1 {}
+1700208815.411030 [0] camera_poi: config: Domain/TCP/ReadTimeout/#text: 2 s {}
+1700208815.411037 [0] camera_poi: config: Domain/TCP/WriteTimeout/#text: 2 s {}
+1700208815.411044 [0] camera_poi: config: Domain/TCP/AlwaysUsePeeraddrForUnicast/#text: false {}
+1700208815.411051 [0] camera_poi: config: Domain/SSL/Enable/#text: false {}
+1700208815.411057 [0] camera_poi: config: Domain/SSL/CertificateVerification/#text: true {}
+1700208815.411064 [0] camera_poi: config: Domain/SSL/VerifyClient/#text: true {}
+1700208815.411071 [0] camera_poi: config: Domain/SSL/SelfSignedCertificates/#text: false {}
+1700208815.411077 [0] camera_poi: config: Domain/SSL/KeystoreFile/#text: keystore {}
+1700208815.411084 [0] camera_poi: config: Domain/SSL/KeyPassphrase/#text: secret {}
+1700208815.411091 [0] camera_poi: config: Domain/SSL/Ciphers/#text: ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH {}
+1700208815.411098 [0] camera_poi: config: Domain/SSL/EntropyFile/#text:  {}
+1700208815.411105 [0] camera_poi: config: Domain/SSL/MinimumTLSVersion/#text: 1.3 {}
+1700208815.411112 [0] camera_poi: config: Domain/SharedMemory/Enable/#text: false {}
+1700208815.411119 [0] camera_poi: config: Domain/SharedMemory/Locator/#text:  {}
+1700208815.411126 [0] camera_poi: config: Domain/SharedMemory/Prefix/#text: DDS_CYCLONE {}
+1700208815.411133 [0] camera_poi: config: Domain/SharedMemory/LogLevel/#text: info {}
+1700208815.411141 [0] camera_poi: config: Domain[@Id]: 0 {1}
+1700208815.411237 [0] camera_poi: started at 1700208815.06411158 -- 2023-11-17 08:13:35+00:00
+1700208815.411576 [0] camera_poi: udp initialized
+1700208815.414055 [0] camera_poi: interfaces: lo udp/127.0.0.1(q1) enp2s0 udp/192.168.0.11(q9) enxaca00060a8b4 udp/192.168.100.100(q9) wlp3s0 wireless udp/192.168.1.112(q9) docker0 udp/172.17.0.1(q9)
+1700208815.414103 [0] camera_poi: selected interfaces: docker0 (index 5 priority 0)
+1700208815.414111 [0] camera_poi: presumed robust multicast support, use for everything
+1700208815.414149 [0] camera_poi: ownip: udp/172.17.0.1
+1700208815.414155 [0] camera_poi: extmask: invalid/0 (not applicable)
+1700208815.414160 [0] camera_poi: SPDP MC: udp/239.255.0.1
+1700208815.414177 [0] camera_poi: default MC: udp/239.255.0.1
+1700208815.414181 [0] camera_poi: SSM support included
+1700208815.414465 [0] camera_poi: rtps_init: uc ports: disc 0 data 0
+1700208815.414477 [0] camera_poi: rtps_init: domainid 0 participantid -2
+1700208815.414483 [0] camera_poi: Unicast Ports: discovery 56863 data 56863
+1700208815.414640 [0] camera_poi: Multicast Ports: discovery 7400 data 7401 
+1700208815.414660 [0] camera_poi: interface docker0: transmit port 55498
