@@ -303,7 +303,7 @@ class BluetoothServer(Node):
     # 
     def connect_bluetooth(self,requests,response):
         self.charger_macid = requests.ssid
-        self.get_logger().info("开始对接充电桩. (视觉定位)")
+        self.get_logger().info("开始连接蓝牙")
         self.disconnect_bluetooth = True
         self.get_logger().info("正在重启蓝牙...")
         print('重启蓝牙')

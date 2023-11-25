@@ -21,8 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'charge_server_node = capella_charge_service.charge_service:main',
-            # 'charge_server_bluetooth = capella_charge_service.charge_service_bluetooth:main'
-            "charger_server_bluetooth = capella_charge_service.charge_service_bluetooth-new:main"
+            # "charge_server_bluetooth_new = capella_charge_service.charge_service_bluetooth_new:main",
+            "charge_server_bluetooth = capella_charge_service.charge_service_bluetooth:main"
         ],
     },
 )

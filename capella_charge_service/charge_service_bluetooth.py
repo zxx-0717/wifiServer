@@ -4,15 +4,14 @@ import time
 import os
 import threading
 import crcmod.predefined
-from twisted.internet.selectreactor import SelectReactor
 from capella_ros_msg.srv import ChargePileWifi
 from capella_ros_service_interfaces.msg import ChargeState
 from std_srvs.srv import Empty
 from std_msgs.msg import String
-# from irobot_create_msgs.action import Dock // for dock_visual pkg
+from geometry_msgs.msg import Twist
 from capella_ros_dock_msgs.action import Dock
 from rclpy.action import ActionClient
-from rclpy.qos import DurabilityPolicy,ReliabilityPolicy,QoSProfile,HistoryPolicy,LivelinessPolicy
+from rclpy.qos import DurabilityPolicy,ReliabilityPolicy,QoSProfile,HistoryPolicy
 # 蓝牙模块相关的库
 import asyncio
 from bleak import BleakScanner,BleakClient
@@ -53,11 +52,13 @@ from bleak.exc import BleakError
 # /charger/start_docking:开始对接
 # /charger/stop_docking:停止对接
 
-class WifiServer(Node):
+class BluetoothChargeServer(Node):
     def __init__(self, name):
         super().__init__(name)
         self.get_logger().info("Bluetooth charge Server starting")
+        # 是否断开与充电桩的蓝牙连接
         self.bluetooth_connected = False
+        # 连接充电桩蓝牙的Mac地址
         self.charger_macid = ''
         # 蓝牙数据notify的uuid
         self.uuid_notify = None
@@ -69,11 +70,15 @@ class WifiServer(Node):
         self.disconnect_bluetooth = False
         # 通过bssid链接充电桩WIFI服务
         self.bluetooth_concact_server = self.create_service(ChargePileWifi, 'bluetooth_bssid', self.connect_bluetooth)
+        # 话题和订阅器的qos
         charger_state_qos = QoSProfile(depth=1)
         charger_state_qos.reliability = ReliabilityPolicy.RELIABLE
         charger_state_qos.history = HistoryPolicy.KEEP_LAST
         charger_state_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        # 接收机器人充电时需要连接的充电桩蓝牙Mac地址的订阅器
         self.charger_id_sub = self.create_subscription(String, '/charger/id', self.charger_id_sub_callback,charger_state_qos)
+        # 在机器人充电时发布刹车命令的发布器
+        self.brake_publisher = self.create_publisher(Twist,'/cmd_vel',charger_state_qos)
         # 定时检查WIFI是否断开
         self.check_bluetooth = self.create_timer(5, self.check_bluetooth_callback)
         # 创建充电状态发布器
@@ -81,7 +86,7 @@ class WifiServer(Node):
         # charger_state_qos.reliability = ReliabilityPolicy.RELIABLE
         # charger_state_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
         # self.charge_state_publisher = self.create_publisher(ChargeState, '/charger/state', charger_state_qos)
-        self.charge_state_publisher = self.create_publisher(ChargeState, '/charger/state', 50)
+        self.charge_state_publisher = self.create_publisher(ChargeState, '/charger/state',charger_state_qos)
         timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.charge_state_callback)
         # 初始化充电状态信息
@@ -110,8 +115,15 @@ class WifiServer(Node):
     # 定时发布充电状态
     def charge_state_callback(self, ):
         self.charge_state_publisher.publish(self.charge_state)
+        # 如果机器人正在充电就发布刹车
+        if self.charge_state.pid != '' and self.charge_state.has_contact == True and self.charge_state.is_charging == True and self.charge_state.is_docking == False:
+            brake_msg = Twist()
+            brake_msg.linear.x = 0.0
+            brake_msg.linear.y = 0.0
+            brake_msg.linear.z = 0.0
+            self.brake_publisher.publish(brake_msg)
 
-    # 
+    # 接收app发布的充电桩蓝牙Mac地址的回调函数
     def charger_id_sub_callback(self,msg):
         self.charger_macid = msg.data
 
@@ -317,6 +329,7 @@ class WifiServer(Node):
             response.success = False
         return response
 
+    # 创建bleak客户端
     async def create_bleakclient(self,address):
         # 搜索附近的蓝牙
         # self.get_logger().info("正在搜索附近的蓝牙......\n")
@@ -439,7 +452,6 @@ class WifiServer(Node):
             self.charge_state.pid = ''
             self.charge_state.has_contact = False
             self.charge_state.is_charging = False
-            # self.charge_state.is_docking = False
         try:
             if not self.bleak_client.is_connected:
                 self.charge_state.pid = ''
@@ -470,7 +482,7 @@ class WifiServer(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = WifiServer('bluetooth_charge_server')
+    node = BluetoothChargeServer('bluetooth_charge_server')
     rclpy.spin(node)
     rclpy.shutdown()
 
