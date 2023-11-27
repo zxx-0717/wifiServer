@@ -78,7 +78,7 @@ class BluetoothChargeServer(Node):
         # 接收机器人充电时需要连接的充电桩蓝牙Mac地址的订阅器
         self.charger_id_sub = self.create_subscription(String, '/charger/id', self.charger_id_sub_callback,charger_state_qos)
         # 在机器人充电时发布刹车命令的发布器
-        self.brake_publisher = self.create_publisher(Twist,'/cmd_vel',charger_state_qos)
+        self.brake_publisher = self.create_publisher(Twist,'/cmd_vel', 10)
         # 定时检查WIFI是否断开
         self.check_bluetooth = self.create_timer(5, self.check_bluetooth_callback)
         # 创建充电状态发布器
