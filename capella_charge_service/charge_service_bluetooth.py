@@ -79,8 +79,8 @@ class BluetoothChargeServer(Node):
         self.charger_id_sub = self.create_subscription(String, '/charger/id', self.charger_id_sub_callback,charger_state_qos)
         # 在机器人充电时发布刹车命令的发布器
         self.brake_publisher = self.create_publisher(Twist,'/cmd_vel', 10)
-        # 定时检查WIFI是否断开
-        self.check_bluetooth = self.create_timer(5, self.check_bluetooth_callback)
+        # # 定时检查WIFI是否断开
+        # self.check_bluetooth = self.create_timer(5, self.check_bluetooth_callback)
         # 创建充电状态发布器
         # charger_state_qos = QoSProfile(depth=1)
         # charger_state_qos.reliability = ReliabilityPolicy.RELIABLE
@@ -114,6 +114,19 @@ class BluetoothChargeServer(Node):
 
     # 定时发布充电状态
     def charge_state_callback(self, ):
+        if self.charge_state.pid == '':
+            self.charge_state.pid = ''
+            self.charge_state.has_contact = False
+            self.charge_state.is_charging = False
+        try:
+            if not self.bleak_client.is_connected:
+                self.charge_state.pid = ''
+                self.charge_state.has_contact = False
+                self.charge_state.is_charging = False
+        except:
+            self.charge_state.pid = ''
+            self.charge_state.has_contact = False
+            self.charge_state.is_charging = False
         self.charge_state_publisher.publish(self.charge_state)
         # 如果机器人正在充电就发布刹车
         if self.charge_state.pid != '' and self.charge_state.has_contact == True and self.charge_state.is_charging == True and self.charge_state.is_docking == False:
@@ -126,6 +139,11 @@ class BluetoothChargeServer(Node):
     # 接收app发布的充电桩蓝牙Mac地址的回调函数
     def charger_id_sub_callback(self,msg):
         self.charger_macid = msg.data
+        if msg.data != '':
+            connect_bluetooth_request = ChargePileWifi.Request()
+            connect_bluetooth_request.ssid = self.charger_macid
+            connect_bluetooth_response = ChargePileWifi.Response()
+            self.connect_bluetooth(connect_bluetooth_request,connect_bluetooth_response)
 
     # 开始充电服务回调函数,向充电桩发送开始充电数据帧
     def start_charge_callback(self, request, response):
@@ -222,20 +240,24 @@ class BluetoothChargeServer(Node):
         self.get_logger().info("开始对接充电桩. (视觉定位)")
         self.charge_state.is_docking = True
 
-        # connect wifi
+        # connect bluetooth
+        start_time = time.time()
         connect_bluetooth_request = ChargePileWifi.Request()
         connect_bluetooth_request.ssid = self.charger_macid
         connect_bluetooth_response = ChargePileWifi.Response()
-        self.connect_bluetooth(connect_bluetooth_request,connect_bluetooth_response)
+        
+        while time.time() - start_time < 60:
+            self.connect_bluetooth(connect_bluetooth_request,connect_bluetooth_response)
+            if self.charge_state.pid != '':        
+                self.get_logger().info('start docking action')
+                self.dock_client = ActionClient(self, Dock, "dock")
+                dock_msg = Dock.Goal()
+                while not self.dock_client.wait_for_server(2):
+                    self.get_logger().info('Dock action server not available.')
+                self.dock_client_sendgoal_future = self.dock_client.send_goal_async(dock_msg, self.dock_feedback_callback)
+                self.dock_client_sendgoal_future.add_done_callback(self.dock_response_callback)
+                break
 
-        if self.charge_state.pid != '':        
-            self.get_logger().info('start docking action')
-            self.dock_client = ActionClient(self, Dock, "dock")
-            dock_msg = Dock.Goal()
-            while not self.dock_client.wait_for_server(2):
-                self.get_logger().info('Dock action server not available.')
-            self.dock_client_sendgoal_future = self.dock_client.send_goal_async(dock_msg, self.dock_feedback_callback)
-            self.dock_client_sendgoal_future.add_done_callback(self.dock_response_callback)
         return response
 
     def dock_feedback_callback(self, feedback_msg):
@@ -308,18 +330,19 @@ class BluetoothChargeServer(Node):
         self.thread_bule = threading.Thread(target=self.bluetooth_thread,kwargs={'mac_address':self.charger_macid},daemon=True)
         self.thread_bule.start()
         self.get_logger().info("蓝牙线程已开启。")
-        t1 = time.time()
-        while True:
-            if time.time() - t1 > 10:
-                self.get_logger().info("蓝牙连接超时。")
-                self.bluetooth_connected = False
-                break
-            elif self.charge_state.pid == "" and self.bluetooth_connected == None:
-                time.sleep(1)
-                self.get_logger().info("蓝牙连接中...")
-                continue
-            else:
-                break
+        time.sleep(5)
+        # t1 = time.time()
+        # while True:
+        #     if time.time() - t1 > 60:
+        #         self.get_logger().info("蓝牙连接超时。")
+        #         self.bluetooth_connected = False
+        #         break
+        #     elif self.charge_state.pid == "" and self.bluetooth_connected == None:
+        #         time.sleep(1)
+        #         self.get_logger().info("蓝牙连接中...")
+        #         continue
+        #     else:
+        #         break
         print('self.bluetooth_connected',self.bluetooth_connected)
         if self.bluetooth_connected == True:
             self.get_logger().info('蓝牙连接成功.')
@@ -347,44 +370,47 @@ class BluetoothChargeServer(Node):
         # if address in device_dict.keys():
         try:
             # 开始连接蓝牙
-            print("开始创建bleakclient")
-            async with BleakClient(address) as self.bleak_client:
-                self.disconnect_bluetooth = False
-                if self.bleak_client.is_connected():
-                    # 获取蓝牙的服务
-                    services = self.bleak_client.services
-                    for service in services:
-                        print('服务的uuid：', service.uuid)
-                        for character in service.characteristics:
-                            # print('特征值uuid：', character.uuid)
-                            # print('特征值属性：', character.properties)
-                            # 获取发送数据的蓝牙服务uuid
-                            if character.properties == ['write-without-response', 'write']:
-                                self.uuid_write = character.uuid
-                            # 获取接收数据的蓝牙服务uuid
-                            elif character.properties == ['read', 'notify']:
-                                self.uuid_notify = character.uuid
-                            else:
-                                continue
-                        print('*************************************')
-                else:
-                    self.bluetooth_connected = False
-                self.charge_state.pid = address
-                self.bluetooth_connected = True
-                while self.bleak_client.is_connected:
-                    await self.bleak_client.start_notify(self.uuid_notify, self.notify_data)
-                    if self.send_data is not None:
-                        await self.bleak_client.write_gatt_char(self.uuid_write,self.send_data)
-                        self.send_data = None
-                    if self.disconnect_bluetooth:
-                        await self.bleak_client.disconnect()
-                        self.get_logger().info(f"已断开蓝牙。")
-                        break
-                self.charge_state.pid = ""
+            self.get_logger().info(f"开始创建bleakclient:{address}")
+            if address != '':
+                async with BleakClient(address) as self.bleak_client:
+                    self.disconnect_bluetooth = False
+                    if self.bleak_client.is_connected():
+                        # 获取蓝牙的服务
+                        services = self.bleak_client.services
+                        for service in services:
+                            print('服务的uuid：', service.uuid)
+                            for character in service.characteristics:
+                                # print('特征值uuid：', character.uuid)
+                                # print('特征值属性：', character.properties)
+                                # 获取发送数据的蓝牙服务uuid
+                                if character.properties == ['write-without-response', 'write']:
+                                    self.uuid_write = character.uuid
+                                # 获取接收数据的蓝牙服务uuid
+                                elif character.properties == ['read', 'notify']:
+                                    self.uuid_notify = character.uuid
+                                else:
+                                    continue
+                            print('*************************************')
+                    else:
+                        self.bluetooth_connected = False
+                    self.charge_state.pid = address
+                    self.bluetooth_connected = True
+                    while self.bleak_client.is_connected:
+                        await self.bleak_client.start_notify(self.uuid_notify, self.notify_data)
+                        if self.send_data is not None:
+                            await self.bleak_client.write_gatt_char(self.uuid_write,self.send_data)
+                            self.send_data = None
+                        if self.disconnect_bluetooth:
+                            await self.bleak_client.disconnect()
+                            self.get_logger().info(f"已断开蓝牙。")
+                            break
+                    self.charge_state.pid = ""
         except Exception as e:
             self.bluetooth_connected = False
             self.charge_state.pid = ""
-            # self.get_logger().info(e)
+            self.get_logger().info('连接失败哦')
+            time.sleep(2)
+            print(e)
         # else:
         #     self.get_logger().info(f"当前连接的wifi(bssid:{address})未找到。")
         #     self.bluetooth_connected= False
@@ -446,21 +472,21 @@ class BluetoothChargeServer(Node):
             # self.get_logger().info('----------------------------')
         
 
-    # 定时检查蓝牙是否断开的回调函数data
-    def check_bluetooth_callback(self, ):
-        if self.charge_state.pid == '':
-            self.charge_state.pid = ''
-            self.charge_state.has_contact = False
-            self.charge_state.is_charging = False
-        try:
-            if not self.bleak_client.is_connected:
-                self.charge_state.pid = ''
-                self.charge_state.has_contact = False
-                self.charge_state.is_charging = False
-        except:
-            self.charge_state.pid = ''
-            self.charge_state.has_contact = False
-            self.charge_state.is_charging = False
+    # # 定时检查蓝牙是否断开的回调函数data
+    # def check_bluetooth_callback(self, ):
+    #     if self.charge_state.pid == '':
+    #         self.charge_state.pid = ''
+    #         self.charge_state.has_contact = False
+    #         self.charge_state.is_charging = False
+    #     try:
+    #         if not self.bleak_client.is_connected:
+    #             self.charge_state.pid = ''
+    #             self.charge_state.has_contact = False
+    #             self.charge_state.is_charging = False
+    #     except:
+    #         self.charge_state.pid = ''
+    #         self.charge_state.has_contact = False
+    #         self.charge_state.is_charging = False
 
     # CRC-8/MAXIM　x8+x5+x4+1  循环冗余校验 最后在取了反的
     # 计算校验码
