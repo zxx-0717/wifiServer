@@ -8,7 +8,6 @@
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
-  <depend>time</depend>
   <depend>capella_ros_service_interfaces</depend>
   <depend>capella_ros_msg</depend>
 
