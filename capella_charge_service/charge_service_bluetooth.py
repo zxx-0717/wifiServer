@@ -55,7 +55,6 @@ from bleak.exc import BleakError
 class BluetoothChargeServer(Node):
     def __init__(self, name):
         super().__init__(name)
-        self.get_logger().info("Bluetooth charge Server starting")
         # 是否断开与充电桩的蓝牙连接
         self.bluetooth_connected = False
         # 连接充电桩蓝牙的Mac地址
@@ -66,8 +65,12 @@ class BluetoothChargeServer(Node):
         self.uuid_write = None
         # 初始化发送的数据
         self.send_data = None
+        # 初始化心跳数据
+        self.send_heartbeat_data = None
         # 是否断开蓝牙的属性
         self.disconnect_bluetooth = False
+        # 判断是否需要重新连接蓝牙
+        self.reconnect_bluetooth = False
         # 通过bssid链接充电桩WIFI服务
         self.bluetooth_concact_server = self.create_service(ChargePileWifi, 'bluetooth_bssid', self.connect_bluetooth)
         # 话题和订阅器的qos
@@ -110,6 +113,12 @@ class BluetoothChargeServer(Node):
                                                                 self.start_docking_charging_pile_visual_callback)
         self.stop_docking_charging_pile_server = self.create_service(Empty, '/charger/stop_docking',
                                                                 self.stop_docking_charging_pile_visual_callback)
+        
+        # 重新连接蓝牙的线程
+        self.reconnect_bluetooth_thread = threading.Thread(target=self.reconnect_bluetooth_thread,daemon=True)
+        self.reconnect_bluetooth_thread.start()
+
+        self.get_logger().info("Bluetooth charge Server starting")
 
 
     # 定时发布充电状态
@@ -139,11 +148,11 @@ class BluetoothChargeServer(Node):
     # 接收app发布的充电桩蓝牙Mac地址的回调函数
     def charger_id_sub_callback(self,msg):
         self.charger_macid = msg.data
-        if msg.data != '':
-            connect_bluetooth_request = ChargePileWifi.Request()
-            connect_bluetooth_request.ssid = self.charger_macid
-            connect_bluetooth_response = ChargePileWifi.Response()
-            self.connect_bluetooth(connect_bluetooth_request,connect_bluetooth_response)
+        # if msg.data != '':
+        #     connect_bluetooth_request = ChargePileWifi.Request()
+        #     connect_bluetooth_request.ssid = self.charger_macid
+        #     connect_bluetooth_response = ChargePileWifi.Response()
+        #     self.connect_bluetooth(connect_bluetooth_request,connect_bluetooth_response)
 
     # 开始充电服务回调函数,向充电桩发送开始充电数据帧
     def start_charge_callback(self, request, response):
@@ -218,9 +227,11 @@ class BluetoothChargeServer(Node):
                 # 等待充电桩回复
                 t1 = time.time()
                 # 循环等待充电桩的响应结果
+                self.reconnect_bluetooth = False
                 while True:
                     if self.charge_state.is_charging == False:
                         self.get_logger().info('成功关闭充电！')
+                        self.disconnect_bluetooth = True
                         return response
                     elif time.time() - t1 > 10:
                         self.get_logger().info('关闭充电失败！')
@@ -248,7 +259,8 @@ class BluetoothChargeServer(Node):
         
         while time.time() - start_time < 60:
             self.connect_bluetooth(connect_bluetooth_request,connect_bluetooth_response)
-            if self.charge_state.pid != '':        
+            if self.charge_state.pid != '':
+                self.reconnect_bluetooth = True        
                 self.get_logger().info('start docking action')
                 self.dock_client = ActionClient(self, Dock, "dock")
                 dock_msg = Dock.Goal()
@@ -303,6 +315,7 @@ class BluetoothChargeServer(Node):
         cancel_goal_future = self.dock_goal_handle.cancel_goal_async()
         # self.dock_goal_handle.cancel_goal()
         self.get_logger().info("Docking canceled! ")
+        self.reconnect_bluetooth = False
         self.disconnect_bluetooth = True
         self.charge_state.pid = ''
         self.charge_state.has_contact = False
@@ -313,7 +326,7 @@ class BluetoothChargeServer(Node):
 
     # 连接充电桩蓝牙
     def connect_bluetooth(self,request, response):
-        self.charger_macid = request.ssid
+        # self.charger_macid = request.ssid
         self.get_logger().info("正在重启蓝牙...")
         os.system('sudo rfkill block bluetooth') # bluetoothctl power off
         time.sleep(1)
@@ -326,8 +339,8 @@ class BluetoothChargeServer(Node):
         #     self.charger_macid = "94:C9:60:43:C0:6D" # 蓝牙充电桩-1 
         #     # bssid = "94:C9:60:43:BE:67" # 蓝牙充电桩-2
         # 连接网络
-        self.get_logger().info(f"connect bluetooth {self.charger_macid}")
-        self.thread_bule = threading.Thread(target=self.bluetooth_thread,kwargs={'mac_address':self.charger_macid},daemon=True)
+        self.get_logger().info(f"connect bluetooth {request.ssid}")
+        self.thread_bule = threading.Thread(target=self.bluetooth_thread,kwargs={'mac_address':request.ssid},daemon=True)
         self.thread_bule.start()
         self.get_logger().info("蓝牙线程已开启。")
         time.sleep(5)
@@ -397,18 +410,24 @@ class BluetoothChargeServer(Node):
                     self.bluetooth_connected = True
                     while self.bleak_client.is_connected:
                         await self.bleak_client.start_notify(self.uuid_notify, self.notify_data)
+                        await self.bleak_client.stop_notify(self.uuid_notify)
                         if self.send_data is not None:
                             await self.bleak_client.write_gatt_char(self.uuid_write,self.send_data)
                             self.send_data = None
+                        # 向充电桩发送心跳数据
+                        if self.send_heartbeat_data is not None:
+                            await self.bleak_client.write_gatt_char(self.uuid_write,self.send_heartbeat_data)
+                            self.send_heartbeat_data = None
                         if self.disconnect_bluetooth:
+                            self.get_logger().info(f"断开蓝牙。")
                             await self.bleak_client.disconnect()
-                            self.get_logger().info(f"已断开蓝牙。")
                             break
                     self.charge_state.pid = ""
         except Exception as e:
             self.bluetooth_connected = False
             self.charge_state.pid = ""
             self.get_logger().info('连接失败哦')
+            print(e)
             time.sleep(2)
             print(e)
         # else:
@@ -465,6 +484,23 @@ class BluetoothChargeServer(Node):
                     # self.charge_state.stamp = now_time.to_msg()
                 else:
                     self.get_logger().info('has_contact 数据段数据错误。')
+                # 回复充电桩
+                send_d = self.udp_data[:12]
+                # 设置数据帧的命令码
+                send_d[8] = '80'
+                send_d[9] = '21'
+                # 设置数据帧的长度域
+                send_d[10] = '01'
+                send_d[11] = '00'
+                # 设置数据帧的数据域
+                send_d.append('00')
+                # 设置数据帧的校验码
+                send_d.append(self.crc8(send_d))
+                # 设置数据帧的结束符
+                send_d.append('16')
+                # 向充电桩发送心跳数据帧
+                self.send_heartbeat_data = bytes.fromhex(''.join(send_d))   
+                
         # else:
             # self.get_logger().debug(f'self crc: {crc8_}')
             # self.get_logger().debug(f'recv crc: {data_list[-2].upper()}')
@@ -472,21 +508,19 @@ class BluetoothChargeServer(Node):
             # self.get_logger().info('----------------------------')
         
 
-    # # 定时检查蓝牙是否断开的回调函数data
-    # def check_bluetooth_callback(self, ):
-    #     if self.charge_state.pid == '':
-    #         self.charge_state.pid = ''
-    #         self.charge_state.has_contact = False
-    #         self.charge_state.is_charging = False
-    #     try:
-    #         if not self.bleak_client.is_connected:
-    #             self.charge_state.pid = ''
-    #             self.charge_state.has_contact = False
-    #             self.charge_state.is_charging = False
-    #     except:
-    #         self.charge_state.pid = ''
-    #         self.charge_state.has_contact = False
-    #         self.charge_state.is_charging = False
+    # 定时检查蓝牙是否断开的回调函数
+    def reconnect_bluetooth_thread(self, ):
+        while True:
+            if self.reconnect_bluetooth and self.charge_state.pid == '':
+                connect_bluetooth_request = ChargePileWifi.Request()
+                connect_bluetooth_request.ssid = self.charger_macid
+                connect_bluetooth_response = ChargePileWifi.Response()
+                self.get_logger().info('正在重新连接蓝牙......')
+                self.connect_bluetooth(connect_bluetooth_request,connect_bluetooth_response)
+            else:
+                time.sleep(5)
+                continue
+
 
     # CRC-8/MAXIM　x8+x5+x4+1  循环冗余校验 最后在取了反的
     # 计算校验码
