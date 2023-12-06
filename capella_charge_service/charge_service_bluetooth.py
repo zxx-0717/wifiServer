@@ -330,6 +330,10 @@ class BluetoothChargeServer(Node):
         self.get_logger().info("正在重启蓝牙...")
         os.system('sudo rfkill block bluetooth') # bluetoothctl power off
         time.sleep(1)
+        self.charge_state.pid = ''
+        self.charge_state.has_contact = False
+        self.charge_state.is_charging = False
+        self.charge_state.is_docking = False
         os.system('sudo rfkill unblock bluetooth')# bluetoothctl power on
         time.sleep(1)
         self.bluetooth_connected = None
@@ -426,7 +430,7 @@ class BluetoothChargeServer(Node):
         except Exception as e:
             self.bluetooth_connected = False
             self.charge_state.pid = ""
-            self.get_logger().info('连接失败哦')
+            self.get_logger().info('连接失败')
             print(e)
             time.sleep(2)
             print(e)
